@@ -1,6 +1,40 @@
+import asyncio
 import streamlit as st
+import kachaka_api
 import layout_logic as logic
 
+# --------------------------------------------------
+# カチャカ非同期通信関数
+# --------------------------------------------------
+async def run_kachaka_tasks(tasks):
+    # カチャカへ接続
+    client = kachaka_api.aio.KachakaApiClient("192.168.100.177:26400")
+
+    # 1. 接続 & 現在地取得
+    robot_pose = await client.get_robot_pose()
+    st.info(f"🤖 カチャカ接続完了！ 現在位置: ({robot_pose.x:.2f}, {robot_pose.y:.2f})")
+
+    # 2. 搬送タスクの実行（動作テストとして20cm前進 ➔ 90度回転）
+    progress_bar = st.progress(0)
+    total_tasks = len(tasks)
+
+    for i, t in enumerate(tasks):
+        st.write(f"🔄 **Step {t['step']} 実行中:** {t['chair']} を {t['origin']} から {t['target']} へ搬送中...")
+
+        # 実機テスト動作（前進 & 回転）
+        await client.move_forward(0.2)
+        await asyncio.sleep(0.5)
+        await client.rotate_in_place(1.57)
+        await asyncio.sleep(0.5)
+
+        # 進捗バー更新
+        progress_bar.progress((i + 1) / total_tasks)
+
+    st.success("🎉 すべての搬送タスクが完了しました！")
+
+# --------------------------------------------------
+# Streamlit UIメイン処理
+# --------------------------------------------------
 # session_state初期化
 if 'top3' not in st.session_state:
     st.session_state.top3 = None
@@ -81,5 +115,10 @@ if st.session_state.selected:
     ]
     st.table(task_table)
 
+    # 実機動作ボタン（ここからカチャカの非同期処理を呼ぶ）
     if st.button('🚀 カチャカへタスク送信（実機動作）', type='primary'):
-        st.success('タスクを生成しました。実機接続モジュール呼び出し準備完了です！')
+        with st.spinner('カチャカと通信中...'):
+            try:
+                asyncio.run(run_kachaka_tasks(tasks))
+            except Exception as e:
+                st.error(f"エラーが発生しました: {e}")
