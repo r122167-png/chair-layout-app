@@ -1,3 +1,4 @@
 streamlit
+matplotlib
 pandas
 kachaka-api>=1.0
