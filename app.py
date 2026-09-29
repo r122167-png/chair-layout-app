@@ -4,7 +4,7 @@ import kachaka_api
 import layout_logic as logic
 
 # --------------------------------------------------
-# カチャカ非同期通信関数
+# カチャカ非同期通信関数（修正版）
 # --------------------------------------------------
 async def run_kachaka_tasks(tasks):
     # カチャカへ接続
@@ -14,18 +14,22 @@ async def run_kachaka_tasks(tasks):
     robot_pose = await client.get_robot_pose()
     st.info(f"🤖 カチャカ接続完了！ 現在位置: ({robot_pose.x:.2f}, {robot_pose.y:.2f})")
 
-    # 2. 搬送タスクの実行（動作テストとして20cm前進 ➔ 90度回転）
     progress_bar = st.progress(0)
     total_tasks = len(tasks)
 
+    # 2. 搬送タスクの順次実行
     for i, t in enumerate(tasks):
-        st.write(f"🔄 **Step {t['step']} 実行中:** {t['chair']} を {t['origin']} から {t['target']} へ搬送中...")
+        target = t['target']  # 例: 'Seat_B2' など
+        st.write(f"🚚 **Step {t['step']} 実行中:** {t['chair']} を **{target}** へ搬送中...")
 
-        # 実機テスト動作（前進 & 回転）
-        await client.move_forward(0.2)
-        await asyncio.sleep(0.5)
-        await client.rotate_in_place(1.57)
-        await asyncio.sleep(0.5)
+        # ★ 実際の目的地への移動コマンドを実行
+        result = await client.move_to_location(target)
+
+        if result.success:
+            st.success(f"✅ Step {t['step']}: **{target}** 到着完了！")
+        else:
+            st.error(f"⚠️ Step {t['step']}: **{target}** への移動に失敗しました。")
+            break  # 移動失敗時は安全のため途中で停止
 
         # 進捗バー更新
         progress_bar.progress((i + 1) / total_tasks)
