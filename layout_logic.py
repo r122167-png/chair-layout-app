@@ -137,7 +137,7 @@ def calc_score(layout, wide, tall, spacious, compact):
     return score
 
 def generate_movement_tasks(layout, max_rows=6, max_cols=6):
-    """6x6の全体エリアの中央に寄せた移動座標リストを生成"""
+    """6x6の全体エリアの中央に寄せた移動座標リスト（タスク）を生成"""
     selected_rows = len(layout)
     tasks = []
     chair_count = 1
